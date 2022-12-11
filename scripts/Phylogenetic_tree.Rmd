@@ -5,6 +5,11 @@ date: "3/28/2021"
 output: pdf_document
 ---
 
+
+Althought the pie chart has mostly been relegated as a data visualization tool of the past, I think that is occasionally still does have it's uses. Acomplication with the size o
+
+
+
 To show the extent of the available A353 sequence data, relative to the taxa at RMBL we will create a circular phylogenetic tree, and then place a circle plot indicating PRESENCE or ABSENCE of a sequence for the genus. 
 
 This will require 3 sets of data:
@@ -14,33 +19,37 @@ C) The Vascular Plant Checklist for RMBL.
 
 We will then make these data more coarse, to the resolution of genus. Naturally we will subset PAFTOL to the genera at RMBL to reduce extraneous tips hence branches. 
 
+
+```{r Install GGTREE if needed, eval = F, echo =F}
+install.packages('BiocManager')
+BiocManager::install("ggtree") #to download ggtreee use this 
+```
+
 ```{r library, results = 'hide', message = F, warning = F, echo = FALSE}
 library(tidyverse)
 library(ggtree)
 library(rotl)
 library(ggnewscale)
-
-# BiocManager::install("ggtree") #to download ggtreee use this 
+library(taxizedb)
 ```
 
 Molecular import and wrangle. 
-```{r, import data & wrangle - Molecular}
-non_biotic <- read.csv("non_biotic_poll.csv")[,2]
-'%notin%' <- Negate('%in%')
+```{r  import molecular data & wrangle - Molecular}
+non_biotic <- read.csv("../data/non_biotic_poll.csv")[,2]
 
-rmbl_plants <- read.csv('/hdd/yun master/RMBL/vascular plant checklist/gothic_plant_list.csv') %>% 
+rmbl_plants <- read.csv('../data/gothic_plant_list.csv') %>% 
   group_by(genus) %>% 
   mutate(no_species = n()) %>% 
   dplyr::select(-species) %>% 
-  filter(family %notin% non_biotic) %>% 
+  filter(!family %in% non_biotic) %>% 
   ungroup() %>% 
-  mutate(taxid = taxizedb::name2taxid(binomial, db = 'ncbi'))
+  mutate(taxid = name2taxid(binomial, db = 'ncbi'))
 
 rmbl_genera <- rmbl_plants %>% 
   distinct(genus) %>% 
   pull(genus) 
 
-eastwood_summary <- read.delim('eastwood_db_summary.csv', header = F, 
+eastwood_summary <- read.delim('../data/eastwood_db_summary.csv', header = F, 
                                col.names = c('prc_mini_map2_root', 'no_mini_root', 
                                              'no_mini_map_clade', 'rank', 'taxid', 'taxon') 
                                ) %>% 
@@ -53,21 +62,17 @@ eastwood_summary <- read.delim('eastwood_db_summary.csv', header = F,
   distinct() %>% 
   ungroup() 
 
-rm(cbeegee, paftol)
 ```
 
 Morphological Import and wrangle
-```{r, import data & wrangle - Morphological}
+```{r, import data & wrangle - Morphological, warning = F}
 
-new <- read.csv("/hdd/Pollen_Reference_Library/Pollen_Label_box.csv") %>% 
+new <- read.csv("../data/Pollen_Label_box.csv") %>% 
   separate(Taxon, into = c('genus', 'species'), extra = "drop") %>% 
   select(genus, Family)
   
-old <- read.csv("/hdd/Pollen_Reference_Library/existing_pollen_reference_slides.csv") %>% 
+old <- read.csv("../data/existing_pollen_reference_slides.csv") %>% 
   select('genus' = Genus, Family)
-
-# future <- read.csv("/media/reed/External HD/Pollen_Reference_Library/slides_to_make_rmbl.csv") #%>% 
-#  rename(genus = "ï..genus")
 
 pollen_slides <- rbind(new, old)
 rm(new, old)
@@ -90,7 +95,7 @@ species_to_q <- rmbl_plants %>%
   sample_n(1) %>% 
   pull(binomial)
 
-rmbl_genera1 <- rmbl_genera[rmbl_genera %notin% non_monophyletic_genera]
+rmbl_genera1 <- rmbl_genera[!rmbl_genera %in% non_monophyletic_genera]
 rmbl_queries <- c(rmbl_genera1, species_to_q)
 
 rmbl_queries <- rmbl_queries %>% 
@@ -115,10 +120,9 @@ rm(non_monophyletic_genera, rmbl_queries, rmbl_genera1)
 ```
 
 
-```{r}
+```{r Plot a phylogenetic tree with named nodes}
 
 rmbl_tree <- ggtree(tree, size=1.0, branch.length='none', layout='circular')
-
 rmbl_named <- ggtree(tree, branch.length='none', layout='circular') +
   geom_tiplab(size = 3) + 
   geom_text(aes(label=node))
