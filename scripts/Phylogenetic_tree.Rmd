@@ -20,7 +20,7 @@ C) The Vascular Plant Checklist for RMBL.
 We will then make these data more coarse, to the resolution of genus. Naturally we will subset PAFTOL to the genera at RMBL to reduce extraneous tips hence branches. 
 
 
-```{r Install GGTREE if needed, eval = F, echo =F}
+```{r Install GGTREE if needed, eval = F, echo = F}
 install.packages('BiocManager')
 BiocManager::install("ggtree") #to download ggtreee use this 
 ```
@@ -31,10 +31,11 @@ library(ggtree)
 library(rotl)
 library(ggnewscale)
 library(taxizedb)
+library(ggimage)
 ```
 
 Molecular import and wrangle. 
-```{r  import molecular data & wrangle - Molecular}
+```{r import molecular data & wrangle - Molecular}
 non_biotic <- read.csv("../data/non_biotic_poll.csv")[,2]
 
 rmbl_plants <- read.csv('../data/gothic_plant_list.csv') %>% 
@@ -75,6 +76,7 @@ old <- read.csv("../data/existing_pollen_reference_slides.csv") %>%
   select('genus' = Genus, Family)
 
 pollen_slides <- rbind(new, old)
+
 rm(new, old)
 ```
 
@@ -116,9 +118,10 @@ tree[["tip.label"]] <- sub("_.*", "",tree[["tip.label"]])
 tip_label_order <- as.data.frame(sub("_.*", "",tree[["tip.label"]])) # we need these to annotate the tree. 
 colnames(tip_label_order) <- "genus"
 
-rm(non_monophyletic_genera, rmbl_queries, rmbl_genera1)
+rm(non_monophyletic_genera, rmbl_queries, rmbl_genera1, resolved_names, species_to_q, rmbl_plants, rmbl_plants)
 ```
 
+We can plot the entirety of the taxa for which we have the tree with names and the nodes labelled. 
 
 ```{r Plot a phylogenetic tree with named nodes}
 
@@ -129,25 +132,68 @@ rmbl_named <- ggtree(tree, branch.length='none', layout='circular') +
 
 plot(rmbl_named)
 
+rm( rmbl_named)
 ```
 
 Annotate tree and things
-```{r, Molecular Tree}
+```{r Molecular Tree, message = F}
 sequenced <- eastwood_summary %>% 
   dplyr::select(genus) %>% 
   distinct() %>% 
-  mutate(SEQUENCED = 1)
+  mutate(SEQUENCED = 'sequenced')
 
 grouptreeSEQ <- left_join(tip_label_order, sequenced, by = "genus")%>% 
-  mutate_if(is.numeric , replace_na, replace = 0) %>% 
+  mutate(SEQUENCED = replace_na(SEQUENCED, replace = 'lacking')) %>% 
   dplyr::select(SEQUENCED)
 rownames(grouptreeSEQ) <- tree$tip.label
 
 gheatmap(rmbl_tree, grouptreeSEQ, colnames = F, offset=0.1, width=.25,
-                low = "maroon3", high = "limegreen", color = "lightgoldenrod1") +
+                low = "#D8B70A", high = "lightseagreen", color = "#CEAB07") +
       theme(legend.position="none",
         plot.title = element_text(hjust = 0.5)) +
-  ggtitle("Biotically Pollinated Plant Genera \n at RMBL with Molecular Vouchers") +
+  ggtitle("Biotically Pollinated Plant Genera \n at RMBL with Molecular Vouchers") 
+
+#ggsave("phylo_test.png")
+```
+
+```{r, Morphological Tree}
+pollen_slides_prepped <- pollen_slides %>% 
+  dplyr::select(genus) %>% 
+  distinct() %>% 
+  mutate(SLIDE = 'slide') 
+
+grouptreeMORPH <- left_join(tip_label_order, pollen_slides_prepped, by = "genus")%>% 
+  mutate(SLIDE = replace_na(SLIDE, replace = 'lacking')) %>% 
+  dplyr::select(SLIDE)
+rownames(grouptreeMORPH) <- tree$tip.label
+
+tp2 <- gheatmap(rmbl_tree, grouptreeMORPH, colnames = F, offset=.01, width=.2,
+                low = "maroon3", high = "limegreen", color = "lightgoldenrod1") +
+  theme(legend.position="none",
+        plot.title = element_text(hjust = 0.5)) +
+  ggtitle("Biotically Pollinated Plant Genera \n at RMBL with Voucher Slides") 
+  #scale_color_manual(name = "Voucher Status")
+
+tp2
+
+# ggsave("pollen_slides_morpho.png", tp2, bg = "transparent")
+```
+
+
+```{r Consensus tree both morpho and molecular}
+
+
+labDataDF <- cbind(grouptreeMORPH, grouptreeSEQ)
+
+
+gheatmap(rmbl_tree, labDataDF, offset=.8, width=.2,
+               colnames_angle=95, colnames_offset_y = .25, colnames = F) +
+  scale_fill_manual('Status', values = c('grey65', 'lightseagreen', 'maroon3')) +
+
+  theme(plot.title = element_text(hjust = 0.5)) +
+  
+  ggtitle("Biotically Pollinated Plant Genera \n at RMBL with Voucher Slides") +
+    
   geom_cladelab(node=440, label="Liliales", angle=275, color='white',
               fontsize=2, offset=9) +
   geom_cladelab(node=436, label="Asparagales", angle=285, color='white',
@@ -183,75 +229,70 @@ gheatmap(rmbl_tree, grouptreeSEQ, colnames = F, offset=0.1, width=.25,
   geom_cladelab(node=350, label="Asterales", angle=230, color='white',
               fontsize=2, offset=9) 
 
-#ggsave("phylo_test.png")
-```
-
-```{r, Morphological Tree}
-pollen_slides_prepped <- pollen_slides %>% 
-  dplyr::select(genus) %>% 
-  distinct() %>% 
-  mutate(SLIDE = 1) 
-
-grouptreeMORPH <- left_join(tip_label_order, pollen_slides_prepped, by = "genus")%>% 
-  mutate_if(is.numeric , replace_na, replace = 0) %>% 
-  dplyr::select(SLIDE)
-rownames(grouptreeMORPH) <- tree$tip.label
-
-tp2 <- gheatmap(rmbl_tree, grouptreeMORPH, colnames = F, offset=.01, width=.2,
-                low = "#D8B70A", high = "lightseagreen", color = "#CEAB07") +
-  theme(legend.position="none",
-        plot.title = element_text(hjust = 0.5)) +
-  ggtitle("Biotically Pollinated Plant Genera \n at RMBL with Voucher Slides") 
-  #scale_color_manual(name = "Voucher Status")
-
-tp2
-
-# ggsave("pollen_slides_morpho.png", tp2, bg = "transparent")
 ```
 
 
-```{r Consensus tree both morpho and molecular}
-
-library(ggnewscale)
 
 
-p1 <- gheatmap(circ, df, offset=.8, width=.2,
-               colnames_angle=95, colnames_offset_y = .25) +
-    scale_fill_viridis_d(option="D", name="discrete\nvalue")
 
 
-library(ggnewscale)
-p2 <- p1 + new_scale_fill()
-gheatmap(p2, df2, offset=15, width=.3,
-         colnames_angle=90, colnames_offset_y = .25) +
-    scale_fill_viridis_c(option="A", name="continuous\nvalue")
-```
 
 
 
 ```{r}
-nwk <- system.file("extdata", "sample.nwk", package="treeio")
-tree_ex <- read.tree(nwk)
+data(iris)
+rn <- paste0(iris[,5], "_", 1:150)
+rownames(iris) <- rn
+d_iris <- dist(iris[,-5], method="man")
 
-circ <- ggtree(tree_ex, layout = "circular")
+tree_iris <- ape::bionj(d_iris)
+grp <- list(setosa     = rn[1:50],
+            versicolor = rn[51:100],
+            virginica  = rn[101:150])
 
-df <- data.frame(molecular=c("SAMPLED", "NOTSAMPLED", "a", "c", "d", "d", "a", "b", "e", "e", "f", "c", "f"),
-                 second= c("z", "z", "z", "z", "y", "y", "y", "y", "x", "x", "x", "a", "a"))
-rownames(df) <- tree_ex$tip.label
+p_iris <- ggtree(tree_iris, layout = 'circular', branch.length='none')
 
-df2 <- as.data.frame(matrix(rnorm(39), ncol=3))
-rownames(df2) <- tree_ex$tip.label
-colnames(df2) <- LETTERS[1:3]
+groupOTU(p_iris, grp, 'Species') + 
+  aes(color=Species) 
 
-p1 <- gheatmap(circ, df, offset=.8, width=.2,
-               colnames_angle=95, colnames_offset_y = .25) +
-    scale_fill_viridis_d(option="D", name="Status")
+```
 
-p1
 
-p2 <- p1 + new_scale_fill()
-gheatmap(p2, df2, offset=15, width=.3,
-         colnames_angle=90, colnames_offset_y = .25) +
-    scale_fill_viridis_c(option="A", name="continuous\nvalue")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+newick <- paste0("((Pongo_abelii,(Gorilla_gorilla_gorilla,(Pan_paniscus,",
+          "Pan_troglodytes)Pan,Homo_sapiens)Homininae)Hominidae,",
+          "Nomascus_leucogenys)Hominoidea;")
+
+tree <- read.tree(text=newick)
+
+d <- ggimage::phylopic_uid(tree$tip.label)
+d$body_mass <- c(52, 114, 47, 45, 58, 6)
+
+
+p <- ggtree(tree) %<+% d + 
+  geom_tiplab(aes(image=uid, colour=body_mass), geom="phylopic", offset=2.5) +
+  geom_tiplab(aes(label=label), offset = .2) + xlim(NA, 7) + # we can use angle = 90 o turn the object
+  scale_color_viridis_c()
+
+p
+
 ```
 
