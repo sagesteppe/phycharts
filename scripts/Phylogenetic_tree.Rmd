@@ -132,8 +132,9 @@ We can plot the entirety of the taxa for which we have the tree with names and t
 ```{r Plot a phylogenetic tree with named nodes}
 
 tree <- ape::read.tree(file = "../data/rmbl_tree")
-
-class(tree)
+tree[["tip.label"]] <- sub("_.*", "",tree[["tip.label"]])
+tip_label_order <- as.data.frame(sub("_.*", "",tree[["tip.label"]])) # we need these to annotate the tree. 
+colnames(tip_label_order) <- "genus"
 
 rmbl_tree <- ggtree(tree, size=1.0, branch.length='none', layout='circular')
 rmbl_named <- ggtree(tree, branch.length='none', layout='circular') +
@@ -226,22 +227,40 @@ node_dist <- data.frame(
     rep("Ranunculales", each = length(c(411:423, 206:219))),
     rep("Rosales", each = length(c(257:269, 10:23))),
     rep("Sapindales", each = length(c(34))),
-    rep('Saxifragaceae', each = length(c(305:311, 61:69))),
+    rep('Saxifragales', each = length(c(305:311, 61:69))),
     rep("Solanales", each = length(c(96))),
     rep('Zingiberales', each = length(c(220)))
   )
 )
 
-color_palette_map <- data.frame(
-  order =  c("Asterales", "Alismatales",  "Asparagales", "Apiales", "Boraginales", 
-             "Brassicales", "Caryophyllales", "Celastrales", "Cornales", "Dipsacales", 
-             "Ericales", "Fabales",  "Gentianales", 'Geraniales', "Lamiales", "Liliales", 
-             "Malpighiales", "Malvales", "Myrtales", "Ranunculales", "Rosales", 
-             "Sapindales", 'Saxifragaceae', 'Solanales', 'Zingiberales'),
-  color = c(sample(colors(), size =  25))
+upper <- data.frame(
+  node = c(
+    c(242,424),
+    244, 
+    245:246,
+    c(247:248, 256:257),
+    c(279:281, 300), 
+    c(312:313),
+    c(314:315),
+    c(316:317, 340),
+    c(348,376)),
+  order = c(
+    rep('Monocots', each = length(c(242,424))),
+    'Eudicots', 
+    rep('Superrosids', each = length(c(245:246))),
+    rep('Fabids', each = length(c(247:248, 256:257))),
+    rep('Malvids', each = length(c(279:281, 300))),
+    rep('Superasterids', each = length(c(312:313))),
+    rep('Asterids', each = length(c(314:315))),
+    rep('Lamiids', each = length(c(316:317, 340))),
+    rep('Campanulids', each = length(c(348,376)))
+  )
 )
 
-node_dist <- left_join(node_dist, color_palette_map, by = 'order')
+node_dist <- bind_rows(node_dist, upper)
+APalG <- read.csv('../data/APG-hexCodes.csv') 
+
+node_dist <- left_join(node_dist, APalG, by = 'order')
 
 ```
 
@@ -253,7 +272,7 @@ labDataDF <- cbind(grouptreeMORPH, grouptreeSEQ)
 
 ob <- gheatmap(rmbl_tree, labDataDF, offset=.8, width=.2,
                colnames_angle=95, colnames_offset_y = .25, colnames = F, color = 'grey95') +
-  scale_fill_manual('Status', values = c('grey75', 'lightseagreen', 'maroon3') ) +
+  scale_fill_manual('Status', values = c('grey95', 'lightseagreen', 'maroon3') ) +
 
   theme(plot.title = element_text(hjust = 0.5), legend.title.align=0.5, 
         legend.position="bottom") +
@@ -261,8 +280,10 @@ ob <- gheatmap(rmbl_tree, labDataDF, offset=.8, width=.2,
 
 
 ob1 <- ob %<+% 
-  node_dist + aes(color=I(color)) 
-rotate(ob1, 348) +
+  node_dist + 
+  aes(color=I(color)) 
+ob2 <- rotate(ob1, 246)
+rotate(ob2, 348) +
   geom_cladelab(node=412, label="Ranunculales", angle='auto', color='white', fontsize = 3.0,
                offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
   geom_cladelab(node=282, label="Brassicales",  angle='auto', color='white', fontsize = 3.0,
