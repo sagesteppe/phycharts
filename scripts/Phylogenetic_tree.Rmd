@@ -63,6 +63,7 @@ eastwood_summary <- read.delim('../data/eastwood_db_summary.csv', header = F,
   distinct() %>% 
   ungroup() 
 
+rm(non_biotic)
 ```
 
 Morphological Import and wrangle
@@ -138,7 +139,7 @@ rm(non_monophyletic_genera, rmbl_queries, rmbl_genera1, resolved_names, species_
 ```
 
 ```{r remove, echo = F}
-rm(non_monophyletic_genera,  rmbl_plants)
+rm(non_monophyletic_genera, rmbl_plants, rmbl_genera)
 ```
 
 We can plot the entirety of the taxa for which we have the tree with names and the nodes labelled. 
@@ -173,6 +174,7 @@ grouptreeSEQ <- left_join(tip_label_order, sequenced, by = "genus")%>%
   dplyr::select(SEQUENCED)
 rownames(grouptreeSEQ) <- tree$tip.label
 
+rm(eastwood_summary, sequenced)
 ```
 
 ```{r prepare morphological Tree}
@@ -185,6 +187,7 @@ grouptreeMORPH <- left_join(tip_label_order, pollen_slides_prepped, by = "genus"
   mutate(SLIDE = replace_na(SLIDE, replace = 'lacking')) %>% 
   dplyr::select(SLIDE)
 
+rm(pollen_slides, pollen_slides_prepped)
 ```
 
 ```{r prepare observation Tree}
@@ -289,6 +292,7 @@ APalG <- read.csv('../data/APG-hexCodes.csv')
 
 node_dist <- left_join(node_dist, APalG, by = 'order')
 
+rm(upper, tip_label_order)
 ```
 
 Finally create the tree here
@@ -297,9 +301,11 @@ Finally create the tree here
 
 labDataDF <- cbind(grouptreeOBS, grouptreeMORPH, grouptreeSEQ)
 
+rm(grouptreeOBS, grouptreeMORPH, grouptreeSEQ)
+
 ob <- gheatmap(rmbl_tree, labDataDF, offset=.8, width=.2,
                colnames_angle=95, colnames_offset_y = .25, colnames = F, color = 'grey85') +
-  scale_fill_manual('Status', values = c('grey85', '#A0E7E5', '#FFAEBC', '#B4F8C8') ) +
+  scale_fill_manual('Status', values = c('grey85', '#f652a0', '#36eee0', '#4c5270') ) +
 
   theme(plot.title = element_text(hjust = 0.5), legend.title.align=0.5, 
         legend.position="bottom") +
@@ -333,3 +339,9 @@ rotate(ob2, 348) +
 
 ggsave('../results/rmbl_draft_tree.png', device = 'png', width = 5, height = 5, units = 'in')
 ```
+
+
+```{r clean up environment}
+rm(APalG, ob, ob1, ob2, obs, node_dist, labDataDF, rmbl_tree, tree)
+```
+
