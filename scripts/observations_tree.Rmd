@@ -1,11 +1,19 @@
 ---
-title: "Phylogenetic_coverage_RMBL"
+title: "Observation_Coverage_RMBL"
 author: "Reed"
-date: "3/28/2021"
+date: "6/06/2023"
 output: pdf_document
 ---
 
-Although the pie chart has mostly been relegated as a data visualization tool of the past, I think that is occasionally still does have it's uses. A complication with the size o
+To show the extent of the available A353 sequence data, relative to the taxa at RMBL we will create a circular phylogenetic tree, and then place a circle plot indicating PRESENCE or ABSENCE of a sequence for the genus. 
+
+This will require 3 sets of data:
+A) The Current list of all PAFTOL sequence data. 
+B) Our additional sequences
+C) The Vascular Plant Checklist for RMBL. 
+
+We will then make these data more coarse, to the resolution of genus. Naturally we will subset PAFTOL to the genera at RMBL to reduce extraneous tips hence branches. 
+
 
 ```{r Install GGTREE if needed, eval = F, echo = F}
 install.packages('BiocManager')
@@ -37,22 +45,48 @@ rmbl_genera <- rmbl_plants %>%
   distinct(genus) %>% 
   pull(genus) 
 
+eastwood_summary <- read.delim('../data/eastwood_db_summary.csv', header = F, 
+                               col.names = c('prc_mini_map2_root', 'no_mini_root', 
+                                             'no_mini_map_clade', 'rank', 'taxid', 'taxon') 
+                               ) %>% 
+  mutate(taxon = str_trim(taxon)) %>% 
+  filter(rank == 'S',!taxid %in% c(7, 13055)) %>% 
+  separate(taxon, into = c('genus', 'species'), extra = "drop") %>% 
+  group_by(genus) %>% 
+  mutate(no_species = n()) %>% 
+  dplyr::select(-species) %>% 
+  distinct() %>% 
+  ungroup() 
+
 rm(non_biotic)
 ```
 
+Morphological Import and wrangle
+```{r import data & wrangle - Morphological, warning = F}
+
+new <- read.csv("../data/Pollen_Label_box.csv") %>% 
+  separate(Taxon, into = c('genus', 'species'), extra = "drop") %>% 
+  select(genus, Family)
+  
+old <- read.csv("../data/existing_pollen_reference_slides.csv") %>% 
+  select('genus' = Genus, Family)
+
+pollen_slides <- rbind(new, old)
+
+rm(new, old)
+```
 
 ```{r import and wrangle flora obs, warning = F}
-obs <- read.csv("../data/all_interactions.csv") 
 
-pollen_morphotypes <- read.csv('../data/pollen_morphotype_grp_lookup.csv') %>% 
-  mutate(morphotype = str_to_upper(morphotype))
+obs <- read.csv("../data/Bombus_queen_observations_2015.csv")  %>% 
+  distinct(plant.species) %>% 
+  separate(plant.species, into = c('genus', 'species'), sep = '[.]' ) %>% 
+  mutate(genus = str_replace(genus, 'Distegia', 'Lonicera'),
+         genus = str_replace(genus, 'Erythrocoma', 'Geum'),
+         genus = str_replace(genus, 'Adenolinum', 'Linum'),
+         genus = str_replace(genus, 'Ligularia', 'Hymenoxys')) %>% 
+  select(genus)
 
-field <- filter(obs, Observation == 'Field')
-morpho <- filter(obs, Observation == 'Microscopy') %>% 
-  left_join(., pollen_morphotypes, by = c('Plant_spp_morpho' = 'morphotype'))
-molec <- filter(obs, Observation == 'Molecular')
-
-rm(obs)
 ```
 
 
@@ -101,6 +135,26 @@ rm(non_monophyletic_genera, rmbl_queries, rmbl_genera1, resolved_names, species_
 
 ```{r remove, echo = F}
 rm(non_monophyletic_genera, rmbl_plants, rmbl_genera)
+```
+
+We can plot the entirety of the taxa for which we have the tree with names and the nodes labelled. 
+
+```{r Plot a phylogenetic tree with named nodes}
+
+tree <- ape::read.tree(file = "../data/rmbl_tree")
+tree[["tip.label"]] <- sub("_.*", "",tree[["tip.label"]])
+tip_label_order <- as.data.frame(sub("_.*", "",tree[["tip.label"]])) # we need these to annotate the tree. 
+colnames(tip_label_order) <- "genus"
+
+rmbl_tree <- ggtree(tree, size=1.0, branch.length='none', layout='circular')
+rmbl_named <- ggtree(tree, branch.length='none', layout='circular') +
+  geom_tiplab(size = 3) + 
+  geom_text(aes(label=node)) 
+
+rotate(rmbl_named, 348)
+ggsave('../results/named_tree.png', device = 'png', width = 24, height = 24, units = 'in')
+
+rm(rmbl_named)
 ```
 
 Annotate tree and things
@@ -235,54 +289,3 @@ node_dist <- left_join(node_dist, APalG, by = 'order')
 
 rm(upper, tip_label_order)
 ```
-
-Finally create the tree here
-
-```{r Create the tree}
-
-labDataDF <- cbind(grouptreeOBS, grouptreeMORPH, grouptreeSEQ)
-
-rm(grouptreeOBS, grouptreeMORPH, grouptreeSEQ)
-
-ob <- gheatmap(rmbl_tree, labDataDF, offset=.8, width=.2,
-               colnames_angle=95, colnames_offset_y = .25, colnames = F, color = 'grey85') +
-  scale_fill_manual('Status', values = c('grey85', '#f652a0', '#36eee0', '#4c5270') ) +
-
-  theme(plot.title = element_text(hjust = 0.5), legend.title.align=0.5, 
-        legend.position="bottom") +
-  ggtitle("Biotically pollinated plant genera \n with morphological or molecular data")
-
-
-ob1 <- ob %<+% 
-  node_dist + 
-  aes(color=I(color)) 
-
-ob2 <- rotate(ob1, 246)
-rotate(ob2, 348) +
-  geom_cladelab(node=412, label="Ranunculales", angle='auto', color='white', fontsize = 3.0,
-               offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
-  geom_cladelab(node=282, label="Brassicales",  angle='auto', color='white', fontsize = 3.0,
-               offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
-  geom_cladelab(node=270, label="Fabales", angle='auto', color='white', fontsize = 3.0,
-               offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
-  geom_cladelab(node=257, label="Rosales", angle='auto', color='white', fontsize = 3.0,
-               offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
-  geom_cladelab(node=398, label="Caryophyllales", angle='auto', color='white', fontsize = 3.0,
-               offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
-  geom_cladelab(node=389, label="Ericales", angle='auto', color='white', fontsize = 3.0,
-               offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
-  geom_cladelab(node=335, label="Boraginales", angle='auto', color='white', fontsize = 3.0,
-               offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
-  geom_cladelab(node=377, label="Apiales", angle='auto', color='white', fontsize = 3.0,
-               offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
-  geom_cladelab(node=350, label="Asterales", angle='auto', color='white', fontsize = 3.0,
-               offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) 
-
-ggsave('../results/rmbl_draft_tree.png', device = 'png', width = 5, height = 5, units = 'in')
-```
-
-
-```{r clean up environment}
-rm(APalG, ob, ob1, ob2, obs, node_dist, labDataDF, rmbl_tree, tree)
-```
-
