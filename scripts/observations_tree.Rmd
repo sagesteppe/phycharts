@@ -1,19 +1,11 @@
 ---
-title: "Observation_Coverage_RMBL"
+title: "Phylogenetic_coverage_RMBL"
 author: "Reed"
-date: "6/06/2023"
+date: "3/28/2021"
 output: pdf_document
 ---
 
-To show the extent of the available A353 sequence data, relative to the taxa at RMBL we will create a circular phylogenetic tree, and then place a circle plot indicating PRESENCE or ABSENCE of a sequence for the genus. 
-
-This will require 3 sets of data:
-A) The Current list of all PAFTOL sequence data. 
-B) Our additional sequences
-C) The Vascular Plant Checklist for RMBL. 
-
-We will then make these data more coarse, to the resolution of genus. Naturally we will subset PAFTOL to the genera at RMBL to reduce extraneous tips hence branches. 
-
+Although the pie chart has mostly been relegated as a data visualization tool of the past, I think that is occasionally still does have it's uses. A complication with the size o
 
 ```{r Install GGTREE if needed, eval = F, echo = F}
 install.packages('BiocManager')
@@ -45,48 +37,27 @@ rmbl_genera <- rmbl_plants %>%
   distinct(genus) %>% 
   pull(genus) 
 
-eastwood_summary <- read.delim('../data/eastwood_db_summary.csv', header = F, 
-                               col.names = c('prc_mini_map2_root', 'no_mini_root', 
-                                             'no_mini_map_clade', 'rank', 'taxid', 'taxon') 
-                               ) %>% 
-  mutate(taxon = str_trim(taxon)) %>% 
-  filter(rank == 'S',!taxid %in% c(7, 13055)) %>% 
-  separate(taxon, into = c('genus', 'species'), extra = "drop") %>% 
-  group_by(genus) %>% 
-  mutate(no_species = n()) %>% 
-  dplyr::select(-species) %>% 
-  distinct() %>% 
-  ungroup() 
-
 rm(non_biotic)
 ```
 
-Morphological Import and wrangle
-```{r import data & wrangle - Morphological, warning = F}
-
-new <- read.csv("../data/Pollen_Label_box.csv") %>% 
-  separate(Taxon, into = c('genus', 'species'), extra = "drop") %>% 
-  select(genus, Family)
-  
-old <- read.csv("../data/existing_pollen_reference_slides.csv") %>% 
-  select('genus' = Genus, Family)
-
-pollen_slides <- rbind(new, old)
-
-rm(new, old)
-```
 
 ```{r import and wrangle flora obs, warning = F}
 
-obs <- read.csv("../data/Bombus_queen_observations_2015.csv")  %>% 
-  distinct(plant.species) %>% 
-  separate(plant.species, into = c('genus', 'species'), sep = '[.]' ) %>% 
-  mutate(genus = str_replace(genus, 'Distegia', 'Lonicera'),
-         genus = str_replace(genus, 'Erythrocoma', 'Geum'),
-         genus = str_replace(genus, 'Adenolinum', 'Linum'),
-         genus = str_replace(genus, 'Ligularia', 'Hymenoxys')) %>% 
-  select(genus)
+pollen_morphotypes <- read.csv('../data/pollen_morphotype_grp_lookup.csv') %>% 
+  mutate(morphotype = str_to_upper(morphotype))
 
+obs <- read.csv("../data/all_interactions.csv") %>% 
+  left_join(., pollen_morphotypes, by = c('Plant_spp_morpho' = 'morphotype')) %>% 
+  mutate(
+    Plant_spp_morpho = ifelse(!is.na(Genus), Genus, Plant_spp_morpho),
+    genus = str_split_i(Plant_spp_morpho,  ' ', 1)) %>% 
+  select(-Genus)
+
+morpho <- filter(obs, Observation == 'Microscopy')
+field <- filter(obs, Observation == 'Field')
+molec <- filter(obs, Observation == 'Molecular')
+
+rm(obs, pollen_morphotypes)
 ```
 
 
@@ -133,12 +104,6 @@ ape::write.tree(tree, file = "../data/rmbl_tree", append = FALSE, digits = 10, t
 rm(non_monophyletic_genera, rmbl_queries, rmbl_genera1, resolved_names, species_to_q)
 ```
 
-```{r remove, echo = F}
-rm(non_monophyletic_genera, rmbl_plants, rmbl_genera)
-```
-
-We can plot the entirety of the taxa for which we have the tree with names and the nodes labelled. 
-
 ```{r Plot a phylogenetic tree with named nodes}
 
 tree <- ape::read.tree(file = "../data/rmbl_tree")
@@ -147,52 +112,49 @@ tip_label_order <- as.data.frame(sub("_.*", "",tree[["tip.label"]])) # we need t
 colnames(tip_label_order) <- "genus"
 
 rmbl_tree <- ggtree(tree, size=1.0, branch.length='none', layout='circular')
-rmbl_named <- ggtree(tree, branch.length='none', layout='circular') +
-  geom_tiplab(size = 3) + 
-  geom_text(aes(label=node)) 
 
-rotate(rmbl_named, 348)
-ggsave('../results/named_tree.png', device = 'png', width = 24, height = 24, units = 'in')
+```
 
-rm(rmbl_named)
+```{r remove, echo = F}
+rm(non_monophyletic_genera, rmbl_plants, rmbl_genera)
 ```
 
 Annotate tree and things
-```{r prepare molecular heatmap data, message = F}
-sequenced <- eastwood_summary %>% 
+```{r prepare field based data, message = F}
+field <- field %>% 
   dplyr::select(genus) %>% 
   distinct() %>% 
-  mutate(SEQUENCED = 'sequenced')
+  mutate(FIELD = 'Field')
 
-grouptreeSEQ <- left_join(tip_label_order, sequenced, by = "genus")%>% 
-  mutate(SEQUENCED = replace_na(SEQUENCED, replace = 'lacking')) %>% 
-  dplyr::select(SEQUENCED)
+grouptreeSEQ <- left_join(tip_label_order, field, by = "genus")%>% 
+  mutate(FIELD = replace_na(FIELD, replace = 'Not Observed')) %>% 
+  dplyr::select(FIELD)
 rownames(grouptreeSEQ) <- tree$tip.label
 
-rm(eastwood_summary, sequenced)
+rm(field)
 ```
 
 ```{r prepare morphological Tree}
-pollen_slides_prepped <- pollen_slides %>% 
+morpho_obs <- morpho %>% 
   dplyr::select(genus) %>% 
   distinct() %>% 
-  mutate(SLIDE = 'slide') 
+  mutate(MICROSCOPY = 'Microscopy')
 
-grouptreeMORPH <- left_join(tip_label_order, pollen_slides_prepped, by = "genus")%>% 
-  mutate(SLIDE = replace_na(SLIDE, replace = 'lacking')) %>% 
-  dplyr::select(SLIDE)
+grouptreeMORPH <- left_join(tip_label_order, morpho_obs, by = "genus")%>% 
+  mutate(MICROSCOPY = replace_na(MICROSCOPY, replace = 'Not Observed')) %>% 
+  dplyr::select(MICROSCOPY)
 
-rm(pollen_slides, pollen_slides_prepped)
+rm(morpho, morpho_obs)
 ```
 
-```{r prepare observation Tree}
+```{r prepare molecular Tree}
 
-grouptreeOBS <- obs %>% 
-  mutate(OBSERVATION = 'observed') %>% 
+grouptreeOBS <- molec %>% 
+  mutate(MOLECULAR = 'Molecular') %>% 
   left_join(tip_label_order, ., by = "genus") %>% 
-  mutate(OBSERVATION = replace_na(OBSERVATION, replace = 'lacking')) %>% 
+  mutate(MOLECULAR = replace_na(MOLECULAR, replace = 'Not Observed')) %>% 
   distinct(genus, .keep_all = T) %>% 
-  dplyr::select(OBSERVATION)
+  dplyr::select(MOLECULAR)
 
 ```
 
@@ -289,3 +251,56 @@ node_dist <- left_join(node_dist, APalG, by = 'order')
 
 rm(upper, tip_label_order)
 ```
+
+Finally create the tree here
+
+```{r Create the tree}
+
+labDataDF <- cbind(grouptreeOBS, grouptreeMORPH, grouptreeSEQ)
+
+rm(grouptreeOBS, grouptreeMORPH, grouptreeSEQ)
+
+cols <- c("Field" = "#f652a0",  "Microscopy" = "#4c5270", 
+          "Molecular" = "#36eee0", "Not Observed" = 'grey85')
+
+ob <- gheatmap(rmbl_tree, labDataDF, offset=.8, width=.2,
+               colnames_angle=95, colnames_offset_y = .25, colnames = F, color = 'grey85') +
+  scale_fill_manual('Status', values = cols ) +
+
+  theme(plot.title = element_text(hjust = 0.5), legend.title.align=0.5, 
+        legend.position="bottom") +
+  ggtitle("Plant genera \n indicated as interacting with Bombus")
+
+ob1 <- ob %<+% 
+  node_dist + 
+  aes(color=I(color)) 
+
+ob2 <- rotate(ob1, 246)
+rotate(ob2, 348) +
+  geom_cladelab(node=417, label="Ranunculales", angle='auto', color='white', fontsize = 3.0,
+               offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
+  geom_cladelab(node=271, label="Brassicales",  angle='auto', color='white', fontsize = 3.0,
+               offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
+  geom_cladelab(node=259, label="Fabales", angle='auto', color='white', fontsize = 3.0,
+               offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
+  geom_cladelab(node=247, label="Rosales", angle='auto', color='white', fontsize = 3.0,
+               offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
+ # geom_cladelab(node=402, label="Caryophyllales", angle='auto', color='white', fontsize = 3.0,
+#               offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
+  geom_cladelab(node=390, label="Ericales", angle='auto', color='white', fontsize = 3.0,
+               offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
+  geom_cladelab(node=325, label="Boraginales", angle='auto', color='white', fontsize = 3.0,
+               offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
+  geom_cladelab(node=379, label="Apiales", angle='auto', color='white', fontsize = 3.0,
+               offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
+  geom_cladelab(node=340, label="Asterales", angle='auto', color='white', fontsize = 3.0,
+               offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) 
+
+ggsave('../results/rmbl_interactions_tree.png', device = 'png', width = 5, height = 5, units = 'in')
+```
+
+
+```{r clean up environment}
+rm(APalG, ob, ob1, ob2, obs, node_dist, labDataDF, rmbl_tree, tree)
+```
+
