@@ -163,84 +163,84 @@ grouptreeOBS <- molec %>%
 
 node_dist <- data.frame(
   node = c(
-    c(349:375, 105:156), # Asterales
-    c(444, 240:241), # Alismatales
-    c(428:439, 221:233), # Asparagales
-    c(377:382, 157:165), # Apiales
-    c(335:339, 90:95), # Boraginales
-    c(282:298, 35:52), # Brassicales
-    c(397:410, 186:205), #Caryophyllales
-    c(255,8:9),  # Celastrales
-    c(185), # Cornales
-    c(383:387, 166:171),  # Dipsacales
-    c(388:397, 172:184), # Ericales
-    c(270:278, 24:33), # Fabales
-    c(341:347, 97:104), # Gentianales
-    c(55), # geraniales
-    c(318:335, 70:89), # Lamiales
-    c(440:443, 234:238, 220), # Liliales
-    c(249:254, 1:7), # Malpighiales
-    c(299, 53:54), # Malvales
-    c(301:304, 56:60), # Myrtales
-    c(411:423, 206:219), # Ranunculales
-    c(257:269, 10:23), # Rosales
-    c(34), # sapindales
-    c(305:311, 61:69), # saxifragaceae
-    c(96), # solanales
-    c(221) # zingiberales
+    c(339:377, 103:151), # Asterales # DONE
+    c(449, 230:231), # Alismatales # DONE
+    c(432:441, 210:223), # Asparagales # DONE
+    c(379:384, 152:159), # Apiales  # DONE
+    c(325:329, 88:93), # Boraginales # DONE
+    c(271:287, 34:51), # Brassicales # DONE
+    c(402:416, 180:195), #Caryophyllales # DONE
+    c(245,8:9),  # Celastrales # DONE
+    c(179), # Cornales  # DONE
+    c(385:389, 160:165),  # Dipsacales # DONE
+    c(390:401, 166:178), # Ericales # DONE
+    c(259:267, 23:32), # Fabales # DONE
+    c(331:337, 95:102), # Gentianales # DONE
+    c(54), # geraniales # DONE
+    c(307:324, 69:87), # Lamiales # DONE
+    c(444:448, 220:229), # Liliales  # DONE
+    c(239:244, 1:7), # Malpighiales # DONE
+    c(288, 52:53), # Malvales # DONE
+    c(289:293, 54:59), # Myrtales # DONE
+    c(417:429, 196:209), # Ranunculales # DONE
+    c(247:258, 10:22), # Rosales # DONE
+    c(33), # sapindales # DONE
+    c(294:300, 60:68), # saxifragaceae # DONE
+    c(94), # solanales # DONE
+    c(210) # zingiberales # DONE
   ),
   order = c(
-    rep("Asterales", each = length(c(349:375, 105:156))),
-    rep("Alismatales", each = length(c(444, 240:241))),
-    rep("Asparagales", each = length(c(428:439, 221:233))),
-    rep("Apiales", each = length(c(377:382, 157:165))),
-    rep("Boraginales", each = length(c(335:339, 90:95))), # #
-    rep("Brassicales", each = length(c(282:298, 35:52))),
-    rep("Caryophyllales", each = length(c(397:410, 186:205))), 
-    rep("Celastrales", each = length(c(255,8:9))), 
-    rep("Cornales", each = length(c(185))),
-    rep("Dipsacales", each = length(c(383:387, 166:171))),
-    rep("Ericales", each = length(c(388:397, 172:184))),
-    rep("Fabales", each = length(c(270:278, 24:33))),
-    rep("Gentianales", each = length(c(341:347, 97:104))),
-    rep('Geraniales', each = length(c(55))),
-    rep("Lamiales", each = length(c(318:335, 70:89))),
-    rep("Liliales", each = length(c(440:443, 234:238, 220))),
-    rep("Malpighiales", each = length(c(249:254, 1:7))), 
-    rep("Malvales", each = length(c(299, 53:54))),
-    rep("Myrtales", each = length(c(301:304, 56:60))), 
-    rep("Ranunculales", each = length(c(411:423, 206:219))),
-    rep("Rosales", each = length(c(257:269, 10:23))),
-    rep("Sapindales", each = length(c(34))),
-    rep('Saxifragales', each = length(c(305:311, 61:69))),
-    rep("Solanales", each = length(c(96))),
-    rep('Zingiberales', each = length(c(221)))
+    rep("Asterales", each = length(c(339:377, 103:151))),
+    rep("Alismatales", each = length(c(449, 230:231))),
+    rep("Asparagales", each = length(c(432:441, 210:223))),
+    rep("Apiales", each = length(c(379:384, 152:159))),
+    rep("Boraginales", each = length(c(325:329, 88:93))), # #
+    rep("Brassicales", each = length(c(271:287, 34:51))),
+    rep("Caryophyllales", each = length(c(402:416, 180:195))), 
+    rep("Celastrales", each = length(c(245,8:9))), 
+    rep("Cornales", each = length(c(179))),
+    rep("Dipsacales", each = length(c(385:389, 160:165))),
+    rep("Ericales", each = length(c(390:401, 166:178))),
+    rep("Fabales", each = length(c(259:267, 23:32))),
+    rep("Gentianales", each = length(c(331:337, 95:102))),
+    rep('Geraniales', each = length(c(54))),
+    rep("Lamiales", each = length(c(307:324, 69:87))),
+    rep("Liliales", each = length(c(444:448, 220:229))),
+    rep("Malpighiales", each = length(c(239:244, 1:7))), 
+    rep("Malvales", each = length(c(288, 52:53))),
+    rep("Myrtales", each = length(c(289:293, 54:59))), 
+    rep("Ranunculales", each = length(c(417:429, 196:209))),
+    rep("Rosales", each = length(c(247:258, 10:22))),
+    rep("Sapindales", each = length(c(33))),
+    rep('Saxifragales', each = length(c(294:300, 60:68))),
+    rep("Solanales", each = length(c(94))),
+    rep('Zingiberales', each = length(c(210)))
   )
 )
 
 upper <- data.frame(
   node = c(
-    243,
-    c(242,424:427),
-    244, 
-    245:246,
-    c(247:248, 256:257),
-    c(279:281, 300), 
-    c(312:313),
-    c(314:315),
-    c(316:317, 340),
-    c(348,376)),
+    233,
+    c(232,423:431),
+    234, 
+    c(235:236),
+    c(237:238, 246),
+    c(268:271), 
+    c(301:302),
+    c(303:304),
+    c(305:306, 330),
+    c(338,378)),
   order = c(
     'Early',
-    rep('Monocots', each = length(c(242,424:427))),
+    rep('Monocots', each = length(c(232,423:431))),
     'Eudicots', 
-    rep('Superrosids', each = length(c(245:246))),
-    rep('Fabids', each = length(c(247:248, 256:257))),
-    rep('Malvids', each = length(c(279:281, 300))),
-    rep('Superasterids', each = length(c(312:313))),
-    rep('Asterids', each = length(c(314:315))),
-    rep('Lamiids', each = length(c(316:317, 340))),
-    rep('Campanulids', each = length(c(348,376)))
+    rep('Superrosids', each = length(c(235:236))),
+    rep('Fabids', each = length(c(237:238, 246))),
+    rep('Malvids', each = length(c(268:271))),
+    rep('Superasterids', each = length(c(301:302))),
+    rep('Asterids', each = length(c(303:304))),
+    rep('Lamiids', each = length(c(305:306, 330))),
+    rep('Campanulids', each = length(c(338,378)))
   )
 )
 
@@ -263,6 +263,11 @@ rm(grouptreeOBS, grouptreeMORPH, grouptreeSEQ)
 cols <- c("Field" = "#f652a0",  "Microscopy" = "#4c5270", 
           "Molecular" = "#36eee0", "Not Observed" = 'grey85')
 
+rmbl_tree <- rotate(rmbl_tree, 236)
+rmbl_tree <- rotate(rmbl_tree, 237)
+rmbl_tree <- rotate(rmbl_tree, 348)
+rmbl_tree <- rotate(rmbl_tree, 268)
+
 ob <- gheatmap(rmbl_tree, labDataDF, offset=.8, width=.2,
                colnames_angle=95, colnames_offset_y = .25, colnames = F, color = 'grey85') +
   scale_fill_manual('Status', values = cols ) +
@@ -275,8 +280,7 @@ ob1 <- ob %<+%
   node_dist + 
   aes(color=I(color)) 
 
-ob2 <- rotate(ob1, 246)
-rotate(ob2, 348) +
+ob1 +
   geom_cladelab(node=417, label="Ranunculales", angle='auto', color='white', fontsize = 3.0,
                offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
   geom_cladelab(node=271, label="Brassicales",  angle='auto', color='white', fontsize = 3.0,
@@ -285,8 +289,6 @@ rotate(ob2, 348) +
                offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
   geom_cladelab(node=247, label="Rosales", angle='auto', color='white', fontsize = 3.0,
                offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
- # geom_cladelab(node=402, label="Caryophyllales", angle='auto', color='white', fontsize = 3.0,
-#               offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
   geom_cladelab(node=390, label="Ericales", angle='auto', color='white', fontsize = 3.0,
                offset=7, offset.text = 1, align = T, horizontal = F, hjust = 0.5) +
   geom_cladelab(node=325, label="Boraginales", angle='auto', color='white', fontsize = 3.0,
@@ -301,6 +303,6 @@ ggsave('../results/rmbl_interactions_tree.png', device = 'png', width = 5, heigh
 
 
 ```{r clean up environment}
-rm(APalG, ob, ob1, ob2, obs, node_dist, labDataDF, rmbl_tree, tree)
+rm(APalG, ob, ob1, obs, node_dist, labDataDF, rmbl_tree, tree)
 ```
 
